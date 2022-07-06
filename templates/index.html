@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Human Disease Ontology</title>
+		
+        <link rel="stylesheet" type="text/css" href="static/style.css" />
+		<script
+      type="text/javascript"
+      src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"
+    ></script>
+    <style type="text/css">
+      #mynetwork {
+        width: 400px;
+        height: 400px;
+        border: 1px solid lightgray;
+		<!-- display: none; -->
+		float:right;
+      }
+    </style>
+	
+		<script>
+		    var doidef;
+			function getDIDInfo(){
+			   function fillList(Lelemid,arr){
+			   var myList = document.getElementById(Lelemid);// clear list
+                             myList.innerHTML = '';
+							 for (let i = 0; i < arr.length; i++) {
+								// Create the list item:
+								let item = document.createElement('li');
+
+								// Set its contents:
+								item.appendChild(document.createTextNode(arr[i]));
+
+								// Add it to the list:
+								myList.appendChild(item);
+							}
+			   }
+				var doid = document.getElementById('did').value;
+				
+				var ajaxRequest = new XMLHttpRequest();
+				ajaxRequest.onreadystatechange = function(){
+					if(ajaxRequest.readyState == 4){
+					console.log('ajaxRequest.status:'+ajaxRequest.status);
+						if(ajaxRequest.status == 200){
+							var disease = JSON.parse(ajaxRequest.responseText);
+							console.log(disease);
+							doidef=disease;
+							document.getElementById('dname').value = disease.name;
+							fillList('dsyns',disease.Synonyms)
+							fillList('dparents',disease.Parents)
+							fillList('dxrefs',disease.Xrefs)
+							fillList('treats',disease.treats)
+							fillList('dsubnets',disease.Subsets)
+							
+							document.getElementById('ddefn').value = disease.defn;
+						}else if(ajaxRequest.status == 404){
+						alert('DOID not found.');
+							var myList = document.getElementById('dparents');// clear list
+							 myList.innerHTML = '';
+							 var myList1 = document.getElementById('dxrefs');// clear list
+							 myList1.innerHTML = '';
+							 var myList2 = document.getElementById('dsubsets');// clear list
+							 myList2.innerHTML = '';
+							 var myList3 = document.getElementById('dsyns');// clear list
+							 myList3.innerHTML = '';
+							 var myList4 = document.getElementById('treats');// clear list
+							 myList4.innerHTML = '';
+							document.getElementById('dname').value = '';
+							document.getElementById('ddefn').value ='';
+						}
+					}			
+				}
+		//		<!-- https://happycoding.io/tutorials/java-server/rest-api -->
+				ajaxRequest.open('GET', 'http://localhost:5000/diseases/' + doid);
+				ajaxRequest.send();
+			}
+			
+			function getSPSM(){
+				var c1 = document.getElementById('c1').value;
+				var c2 = document.getElementById('c2').value;
+				var ajaxRequest = new XMLHttpRequest();
+				ajaxRequest.onreadystatechange = function(){
+					if(ajaxRequest.readyState == 4){
+					console.log('ajaxRequest.status:'+ajaxRequest.status);
+						if(ajaxRequest.status == 200){
+							var spsm = JSON.parse(ajaxRequest.responseText);
+							console.log(spsm);
+							document.getElementById('spsm').value = spsm.shortestPathMeasure;
+							
+						}else if(ajaxRequest.status == 404){
+						alert('Cannot calc Semantic measure.');
+							
+							document.getElementById('spsm').value = '';
+							
+						}
+					}			
+				}
+		
+				ajaxRequest.open('GET', 'http://localhost:5000/spsm?c1=' + c1 +"&c2="+c2);
+				ajaxRequest.send();
+			}
+			function draw(){
+			  // create an array with nodes
+			  var arr=[
+					{ id: 1, label: doidef.name ,shape: 'Circle',font:{size:16,color:'white'}, color: {border:'red',background:'red'}},
+					<!-- { id: 2, label: "neurologists" }, -->
+					<!-- { id: 3, label: "pulmonologist" }, -->
+					<!-- { id: 4, label: "pediatrician" }, -->
+					<!-- { id: 5, label: "internist" }, -->
+				  ];
+				  let i=1;
+				  for (const tt of doidef.treats) {
+				       arr[i]={ id: i+1, label: tt};
+					   i++;
+					   }
+				  var nodes = new vis.DataSet(arr);
+				  <!-- console.log(arr) -->
+				  var arredg=[];
+				   i=2;
+				  for (const tt of doidef.treats) {
+				       arredg[i-2]={ from: 1, to: i, arrows: "to", color:'gray'};
+					   i++;
+					   }
+                  <!-- console.log(arredg) -->
+				  // create an array with edges
+				  var edges = new vis.DataSet(arredg);
+
+				  // create a network
+				  var container = document.getElementById("mynetwork");
+				  var data = {
+					nodes: nodes,
+					edges: edges,
+				  };
+				  var options = {};
+				  var network = new vis.Network(container, data, options);
+			   <!-- document.getElementById("mynetwork").style.display = "block"; -->
+               <!-- document.getElementById("draw_X").focus(); -->
+			}
+			function hide(){
+			document.getElementById("mynetwork").style.display = "none";
+			}
+		</script>
+    </head>
+    <body>
+	
+    <div id="container">
+        <div id="header">
+              <h1> Human Disease Ontology API </h1>
+        </div>
+        <div id="content">
+		<!-- <div id="mynetwork" ></div> -->
+             <div id="main">
+			 <ul>
+			 <!-- <li> get a specific disease </li> -->
+				 <!-- <ul> -->
+					<!-- <li><strong>URL</strong>:&nbsp; <em>http://localhost:5000/diseases/{DOID}</em>&nbsp;</li> -->
+					<!-- <li><strong>Method</strong>: GET</li> -->
+					<!-- <li><strong>Returns</strong>: JSON</li> -->
+					<!-- <li><strong>Example</strong>:&nbsp;<a href="http://localhost:5000/diseases/9120">localhost:5000/diseases/9120&nbsp;</a></li> -->
+				<!-- </ul> -->
+			<li> get a subtypes of disease </li>
+                   <ul>
+						<li><strong>URL</strong>:&nbsp; <em>http://localhost:5000/diseases/{DOID}/codes</em>&nbsp;</li>
+						<!-- <li><strong>Method</strong>: GET</li> -->
+						<!-- <li><strong>Returns</strong>: JSON</li> -->
+						<li><strong>Example</strong>:&nbsp;<a href="http://localhost:5000/diseases/9120/codes">localhost:5000/diseases/9120/codes&nbsp;</a></li>
+					</ul>  
+			
+            <li> get shortestpath Semantic Measure (Max. 28) </li>
+            <p><label for="c1">DOID1:</label><input type="text" value="9120" id="c1">
+			<label for="c2">DOID2:</label><input type="text" value="4" id="c2"> 
+			<button type="button" onclick="getSPSM()">Get shortestpath Semantic Measure</button><input type="text" value="" id="spsm"></p>
+	       <div id="doidinfo">
+		  
+		   <div id="txtinfo">
+		<p><label for="did">DOID:</label><input type="text" value="9120" id="did"><button type="button" onclick="getDIDInfo()">Get</button></p>
+		<p><label for="did">Name:</label> <input type="text" id="dname"></p>
+		<p><strong>Parents:</strong></p>
+		<ul id="dparents">		-- empty list --</ul>
+		<p><strong>Synonyms:</strong></p>
+		<ul id="dsyns">		-- empty list --</ul>
+		<p><strong>Xrefs:</strong></p>
+		<ul id="dxrefs">		-- empty list --</ul>
+		<p><strong>Treats:</strong><button type="button" onclick="draw()">Visualize</button>
+		<!-- <button type="button" id="draw_X" onclick="hide()">Hide</button></p> -->
+		<ul id="treats">		-- empty list --</ul>
+		<p><strong>Subnets:</strong></p>
+		<ul id="dsubnets">		-- empty list --</ul>
+        <p><strong>Description:</strong></p>
+		<textarea id="ddefn" rows="4" cols="50"></textarea>
+		<div id="mynetwork" ></div>
+		</div>
+		 
+		</div>
+		</ul>  
+        </div>
+        </div>
+        <div id="footer">
+        Copyright &copy; 2022 AAD
+        </div>
+    </div>
+ 
+    </body>
+</html>
